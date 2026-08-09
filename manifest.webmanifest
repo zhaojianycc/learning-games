@@ -1,0 +1,35 @@
+{
+  "id": "./",
+  "name": "小鸡救援队——乘法城堡大闯关",
+  "short_name": "乘法闯关",
+  "description": "面向低年级学生的九九乘法口诀闯关游戏",
+  "lang": "zh-CN",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#f1eeff",
+  "theme_color": "#5b4bdb",
+  "categories": ["education", "games", "kids"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
