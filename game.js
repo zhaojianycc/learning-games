@@ -17,6 +17,7 @@ const $ = id => document.getElementById(id);
 const screens = [...document.querySelectorAll(".screen")];
 const state = { player: "", level: 0, unlocked: 0, lives: 3, score: 0, totalCorrect: 0, totalWrong: 0, streak: 0, bestStreak: 0, startedAt: 0, elapsedBefore: 0, levelStart: 0, qIndex: 0, levelCorrect: 0, questions: [], answered: false, muted: false, certificate: "", leaderboardRank: null, newRecord: false };
 const BOARD_KEY = "chickRescueLeaderboard";
+const CLOUD_BOARD = { url: "https://xnydlalgelkinygfgyok.supabase.co", key: "sb_publishable_nlwGDFitvnCRBRb55VW9rg_Uil7DTM1" };
 
 function showScreen(id) { screens.forEach(s => s.classList.toggle("active", s.id === id)); window.scrollTo({ top: 0, behavior: "smooth" }); }
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
@@ -47,27 +48,55 @@ function elapsedNow() { return state.startedAt ? state.elapsedBefore + Date.now(
 function loadSave() { try { return JSON.parse(localStorage.getItem("chickRescueSave")); } catch { return null; } }
 function loadBoard() { try { const board = JSON.parse(localStorage.getItem(BOARD_KEY)); return Array.isArray(board) ? board : []; } catch { return []; } }
 function boardDate(iso) { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
-function registerLeaderboard(accuracy) {
+function sortBoard(board) { return board.sort((a,b) => a.time - b.time || String(a.createdAt).localeCompare(String(b.createdAt))); }
+function saveLocalResult(accuracy) {
+  const oldBoard = sortBoard(loadBoard()), now = new Date().toISOString();
+  const entry = { player: state.player, time: state.elapsedBefore, accuracy, date: now, createdAt: now, certificate: state.certificate };
+  const board = sortBoard([...oldBoard.filter(x => x.certificate !== state.certificate), entry]).slice(0,20);
+  localStorage.setItem(BOARD_KEY, JSON.stringify(board)); return board;
+}
+async function cloudRequest(path, options = {}) {
+  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 7000);
+  try {
+    const response = await fetch(`${CLOUD_BOARD.url}/rest/v1/${path}`, { ...options, signal: controller.signal, headers: { apikey: CLOUD_BOARD.key, "Content-Type": "application/json", ...(options.headers || {}) } });
+    if (!response.ok) throw new Error(`云端榜单请求失败：${response.status}`);
+    return response.status === 204 ? null : response.json();
+  } finally { clearTimeout(timer); }
+}
+async function fetchCloudBoard() {
+  const rows = await cloudRequest("leaderboard_entries?select=player_name,duration_ms,accuracy,created_at,certificate&order=duration_ms.asc,created_at.asc&limit=20");
+  return rows.map(row => ({ player: row.player_name, time: row.duration_ms, accuracy: row.accuracy, date: row.created_at, createdAt: row.created_at, certificate: row.certificate }));
+}
+async function submitCloudResult(accuracy) {
+  return cloudRequest("leaderboard_entries?on_conflict=certificate", { method: "POST", headers: { Prefer: "resolution=ignore-duplicates,return=minimal" }, body: JSON.stringify({ player_name: state.player, duration_ms: Math.round(state.elapsedBefore), accuracy, correct_count: state.totalCorrect, wrong_count: state.totalWrong, best_streak: state.bestStreak, certificate: state.certificate }) });
+}
+async function registerLeaderboard(accuracy) {
   state.leaderboardRank = null; state.newRecord = false;
   if (accuracy < 90) return;
-  const oldBoard = loadBoard().sort((a,b) => a.time - b.time || a.createdAt.localeCompare(b.createdAt));
-  state.newRecord = oldBoard.length > 0 && state.elapsedBefore < oldBoard[0].time;
-  const now = new Date().toISOString();
-  const entry = { player: state.player, time: state.elapsedBefore, accuracy, date: now, createdAt: now, certificate: state.certificate };
-  const board = [...oldBoard, entry].sort((a,b) => a.time - b.time || a.createdAt.localeCompare(b.createdAt)).slice(0,20);
-  const index = board.findIndex(x => x.certificate === state.certificate);
-  if (index >= 0) state.leaderboardRank = index + 1;
-  localStorage.setItem(BOARD_KEY, JSON.stringify(board));
+  const localBoard = saveLocalResult(accuracy);
+  try {
+    const before = await fetchCloudBoard(); state.newRecord = before.length > 0 && state.elapsedBefore < before[0].time;
+    await submitCloudResult(accuracy); const board = await fetchCloudBoard();
+    const index = board.findIndex(x => x.certificate === state.certificate); if (index >= 0) state.leaderboardRank = index + 1;
+    state.leaderboardMode = "cloud";
+  } catch (error) {
+    console.warn(error); const index = localBoard.findIndex(x => x.certificate === state.certificate);
+    if (index >= 0) state.leaderboardRank = index + 1; state.newRecord = localBoard.length > 1 && index === 0; state.leaderboardMode = "local";
+  }
 }
 function escapeHtml(value) { const div=document.createElement("div"); div.textContent=String(value); return div.innerHTML; }
-function renderLeaderboard() {
-  const board = loadBoard().sort((a,b) => a.time - b.time || a.createdAt.localeCompare(b.createdAt));
+function paintLeaderboard(board) {
   $("emptyBoard").hidden = board.length > 0; $("podium").hidden = board.length === 0; document.querySelector(".rank-table-wrap").hidden = board.length === 0;
   const classes = ["first","second","third"], medals = ["🥇","🥈","🥉"];
   $("podium").innerHTML = board.slice(0,3).map((e,i)=>`<div class="podium-place ${classes[i]}"><span>${medals[i]}</span><b>${escapeHtml(e.player)}</b><small>${formatTime(e.time)} · ${e.accuracy}%</small></div>`).join("");
   $("leaderboardBody").innerHTML = board.map((e,i)=>`<tr class="${e.certificate === state.certificate ? "highlight" : ""}"><td class="rank-medal">${medals[i] || i+1}</td><td>${escapeHtml(e.player)}</td><td><b>${formatTime(e.time)}</b></td><td>${e.accuracy}%</td><td>${boardDate(e.date)}</td></tr>`).join("");
 }
-function openLeaderboard() { renderLeaderboard(); showScreen("leaderboardScreen"); }
+async function renderLeaderboard() {
+  paintLeaderboard(sortBoard(loadBoard())); $("leaderboardSource").textContent = "正在连接云端…";
+  try { paintLeaderboard(await fetchCloudBoard()); $("leaderboardSource").textContent = "已连接云端 · Windows、Android 和 iPad 共享"; }
+  catch { $("leaderboardSource").textContent = "当前离线 · 暂时显示本机记录"; }
+}
+function openLeaderboard() { showScreen("leaderboardScreen"); renderLeaderboard(); }
 
 function begin(newGame) {
   const name = $("playerName").value.trim() || "小勇者";
@@ -120,23 +149,24 @@ function finishOrMap() { if (state.level === 9) victory(); else { renderMap(); s
 function retry() { startLevel(state.level); }
 function formatTime(ms) { const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
 function makeCertificate() { const d = new Date(); const date = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`; const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let code = ""; for (let i=0;i<6;i++) code += chars[rand(0,chars.length-1)]; return `MUL-${date}-${code}`; }
-function victory() {
+async function victory() {
   state.elapsedBefore = elapsedNow(); state.startedAt = 0; state.certificate ||= makeCertificate(); const total = state.totalCorrect + state.totalWrong; const accuracy = total ? Math.round(state.totalCorrect / total * 100) : 0;
-  registerLeaderboard(accuracy);
   $("victoryText").textContent = `${state.player}用乘法智慧打败了大怪兽，成功救出了小鸡啾啾！`; $("finalCorrect").textContent = state.totalCorrect; $("finalAccuracy").textContent = `${accuracy}%`; $("finalStreak").textContent = state.bestStreak; $("finalTime").textContent = formatTime(state.elapsedBefore); $("certificateNo").textContent = `证书编号：${state.certificate}`;
-  const notice=$("recordNotice"); notice.hidden=false; notice.className="record-notice";
-  if(state.newRecord){notice.textContent=`🎉 新纪录！${formatTime(state.elapsedBefore)} 成为历史最快通关时间！`;$("certificateRank").textContent="🏆 刷新历史最快纪录 · 榜单第 1 名";}
-  else if(state.leaderboardRank){notice.classList.add("qualified");notice.textContent=`🏅 成功进入极速榜第 ${state.leaderboardRank} 名！`;$("certificateRank").textContent=`🏅 乘法极速榜第 ${state.leaderboardRank} 名`;}
-  else if(accuracy<90){notice.classList.add("unqualified");notice.textContent=`本次正确率为 ${accuracy}%，达到 90% 即可进入极速榜。`;$("certificateRank").textContent="完成十关救援挑战";}
-  else{notice.classList.add("unqualified");notice.textContent="成功通过榜单资格线，继续加速就有机会进入前 20 名！";$("certificateRank").textContent="通过极速榜资格线";}
-  localStorage.removeItem("chickRescueSave"); showScreen("victoryScreen");
+  const notice=$("recordNotice"); notice.hidden=false; notice.className="record-notice qualified"; notice.textContent=accuracy>=90?"🌐 正在同步全平台榜单…":"正在生成通关证书…"; $("badgeBtn").disabled=true; showScreen("victoryScreen");
+  await registerLeaderboard(accuracy); notice.className="record-notice"; $("badgeBtn").disabled=false;
+  const platform=state.leaderboardMode==="local"?"本机":"全平台";
+  if(state.newRecord){notice.textContent=`🎉 ${platform}新纪录！${formatTime(state.elapsedBefore)} 成为最快通关时间！`;$("certificateRank").textContent=`🏆 刷新${platform}最快纪录 · 榜单第 1 名`;}
+  else if(state.leaderboardRank){notice.classList.add("qualified");notice.textContent=`🏅 成功进入${platform}极速榜第 ${state.leaderboardRank} 名！`;$("certificateRank").textContent=`🏅 ${platform}极速榜第 ${state.leaderboardRank} 名`;}
+  else if(accuracy<90){notice.classList.add("unqualified");notice.textContent=`本次正确率为 ${accuracy}%，达到 90% 即可进入全平台榜单。`;$("certificateRank").textContent="完成十关救援挑战";}
+  else{notice.classList.add("unqualified");notice.textContent="成功通过榜单资格线，继续加速就有机会进入全平台前 20 名！";$("certificateRank").textContent="通过全平台极速榜资格线";}
+  localStorage.removeItem("chickRescueSave");
 }
 
 function downloadBadge() {
   const canvas = $("badgeCanvas"), ctx = canvas.getContext("2d"), total = state.totalCorrect + state.totalWrong, accuracy = total ? Math.round(state.totalCorrect / total * 100) : 0, date = new Date().toLocaleDateString("zh-CN");
   const grad = ctx.createLinearGradient(0,0,1400,1000); grad.addColorStop(0,"#eeeaff"); grad.addColorStop(.5,"#fff9df"); grad.addColorStop(1,"#dff8ed"); ctx.fillStyle=grad; ctx.fillRect(0,0,1400,1000); ctx.strokeStyle="#5b4bdb"; ctx.lineWidth=18; ctx.strokeRect(35,35,1330,930); ctx.strokeStyle="#e5b932"; ctx.lineWidth=5; ctx.strokeRect(58,58,1284,884);
   ctx.textAlign="center"; ctx.fillStyle="#5b4bdb"; ctx.font="bold 46px Microsoft YaHei"; ctx.fillText("小鸡救援队 · 荣誉证书",700,145); ctx.font="120px sans-serif"; ctx.fillText("🏅",700,285); ctx.fillStyle="#26314f"; ctx.font="bold 42px Microsoft YaHei"; ctx.fillText("授予",700,365); ctx.fillStyle="#5b4bdb"; ctx.font="bold 78px Microsoft YaHei"; ctx.fillText(state.player,700,460); ctx.fillStyle="#26314f"; ctx.font="36px Microsoft YaHei"; ctx.fillText("乘 法 小 勇 士",700,535); ctx.fillStyle="#6f7893"; ctx.font="28px Microsoft YaHei"; ctx.fillText("凭借勇气和乘法智慧，闯过十关，成功救出小鸡！",700,600);
-  ctx.fillStyle="#fff"; roundRect(ctx,165,645,1070,150,24); ctx.fill(); ctx.fillStyle="#26314f"; ctx.font="bold 27px Microsoft YaHei"; ctx.fillText(`答对 ${state.totalCorrect} 题     正确率 ${accuracy}%     最高连击 ${state.bestStreak}     用时 ${formatTime(state.elapsedBefore)}`,700,695); ctx.fillStyle=state.newRecord?"#b27609":"#5b4bdb"; ctx.font="bold 25px Microsoft YaHei"; const rankLine=state.newRecord?"刷新历史最快纪录 · 极速榜第 1 名":state.leaderboardRank?`乘法极速榜第 ${state.leaderboardRank} 名`:accuracy>=90?"已通过极速榜资格线":"完成十关救援挑战"; ctx.fillText(rankLine,700,740); ctx.fillStyle="#6f7893"; ctx.font="21px Microsoft YaHei"; ctx.fillText(`完成日期：${date}     证书编号：${state.certificate}`,700,775); ctx.fillStyle="#b27609"; ctx.font="bold 30px Microsoft YaHei"; ctx.fillText("小鸡啾啾感谢勇者的救援！",700,865);
+  ctx.fillStyle="#fff"; roundRect(ctx,165,645,1070,150,24); ctx.fill(); ctx.fillStyle="#26314f"; ctx.font="bold 27px Microsoft YaHei"; ctx.fillText(`答对 ${state.totalCorrect} 题     正确率 ${accuracy}%     最高连击 ${state.bestStreak}     用时 ${formatTime(state.elapsedBefore)}`,700,695); ctx.fillStyle=state.newRecord?"#b27609":"#5b4bdb"; ctx.font="bold 25px Microsoft YaHei"; const platform=state.leaderboardMode==="local"?"本机":"全平台", rankLine=state.newRecord?`刷新${platform}最快纪录 · 极速榜第 1 名`:state.leaderboardRank?`${platform}极速榜第 ${state.leaderboardRank} 名`:accuracy>=90?"已通过全平台榜单资格线":"完成十关救援挑战"; ctx.fillText(rankLine,700,740); ctx.fillStyle="#6f7893"; ctx.font="21px Microsoft YaHei"; ctx.fillText(`完成日期：${date}     证书编号：${state.certificate}`,700,775); ctx.fillStyle="#b27609"; ctx.font="bold 30px Microsoft YaHei"; ctx.fillText("小鸡啾啾感谢勇者的救援！",700,865);
   const a=document.createElement("a"); a.download=`乘法小勇士徽章_${state.player}_${date.replaceAll("/","-")}.png`; a.href=canvas.toDataURL("image/png"); a.click();
 }
 function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r)}
