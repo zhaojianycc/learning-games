@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="leaderboard.css">
   <link rel="stylesheet" href="pwa.css">
+  <link rel="stylesheet" href="cloud.css">
 </head>
 <body>
   <div class="sky-dots" aria-hidden="true"></div>
@@ -60,7 +61,7 @@
     <section class="screen" id="leaderboardScreen">
       <div class="section-head"><div><span class="eyebrow">乘法极速榜</span><h2>历史最快勇者</h2></div><button class="secondary" id="leaderboardBackBtn">返回首页</button></div>
       <div class="leaderboard-card">
-        <div class="leaderboard-rule">⏱️ 仅统计成功通关且正确率达到 <b>90%</b> 的成绩，按用时保留最快 20 名。</div>
+        <div class="leaderboard-rule">🌐 全平台云端榜单 · 仅统计成功通关且正确率达到 <b>90%</b> 的成绩，按用时保留最快 20 名。<span id="leaderboardSource"></span></div>
         <div class="podium" id="podium"></div>
         <div class="rank-table-wrap"><table class="rank-table"><thead><tr><th>名次</th><th>勇者</th><th>通关用时</th><th>正确率</th><th>完成日期</th></tr></thead><tbody id="leaderboardBody"></tbody></table></div>
         <div class="empty-board" id="emptyBoard" hidden><span>🏁</span><b>榜单还没有成绩</b><small>成为第一位通关的乘法勇者吧！</small></div>

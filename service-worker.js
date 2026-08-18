@@ -1,11 +1,12 @@
 "use strict";
 
-const CACHE_NAME = "chick-rescue-v4";
+const CACHE_NAME = "chick-rescue-v5-cloud-board";
 const APP_FILES = [
   "./",
   "./index.html",
   "./style.css",
   "./leaderboard.css",
+  "./cloud.css",
   "./game.js",
   "./pwa.js",
   "./manifest.webmanifest",
