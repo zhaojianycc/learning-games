@@ -70,6 +70,19 @@ async function fetchCloudBoard() {
 async function submitCloudResult(accuracy) {
   return cloudRequest("leaderboard_entries?on_conflict=certificate", { method: "POST", headers: { Prefer: "resolution=ignore-duplicates,return=minimal" }, body: JSON.stringify({ player_name: state.player, duration_ms: Math.round(state.elapsedBefore), accuracy, correct_count: state.totalCorrect, wrong_count: state.totalWrong, best_streak: state.bestStreak, certificate: state.certificate }) });
 }
+async function syncLocalBoardToCloud() {
+  const rows = loadBoard().filter(entry => Number(entry.accuracy) >= 90).map((entry, index) => ({
+    player_name: String(entry.player || "小勇者").trim().slice(0, 20) || "小勇者",
+    duration_ms: Math.max(1000, Math.min(86400000, Math.round(Number(entry.time) || 1000))),
+    accuracy: Math.max(90, Math.min(100, Math.round(Number(entry.accuracy) || 90))),
+    correct_count: 0,
+    wrong_count: 0,
+    best_streak: 0,
+    certificate: String(entry.certificate || `MUL-LOCAL-${Math.round(Number(entry.time) || 0)}-${index}`).slice(0, 40)
+  }));
+  if (!rows.length) return;
+  await cloudRequest("leaderboard_entries?on_conflict=certificate", { method: "POST", headers: { Prefer: "resolution=ignore-duplicates,return=minimal" }, body: JSON.stringify(rows) });
+}
 async function registerLeaderboard(accuracy) {
   state.leaderboardRank = null; state.newRecord = false;
   if (accuracy < 90) return;
@@ -93,7 +106,7 @@ function paintLeaderboard(board) {
 }
 async function renderLeaderboard() {
   paintLeaderboard(sortBoard(loadBoard())); $("leaderboardSource").textContent = "正在连接云端…";
-  try { paintLeaderboard(await fetchCloudBoard()); $("leaderboardSource").textContent = "已连接云端 · Windows、Android 和 iPad 共享"; }
+  try { await syncLocalBoardToCloud(); paintLeaderboard(await fetchCloudBoard()); $("leaderboardSource").textContent = "已连接云端 · Windows、Android 和 iPad 共享"; }
   catch { $("leaderboardSource").textContent = "当前离线 · 暂时显示本机记录"; }
 }
 function openLeaderboard() { showScreen("leaderboardScreen"); renderLeaderboard(); }

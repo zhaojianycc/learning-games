@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "chick-rescue-v5-cloud-board";
+const CACHE_NAME = "chick-rescue-v6-sync-local-records";
 const APP_FILES = [
   "./",
   "./index.html",
