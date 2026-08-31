@@ -1,0 +1,26 @@
+{
+  "title": "小学数学乘法题库（1-2年级）",
+  "version": "1.0.0",
+  "language": "zh-CN",
+  "updated": "2026-08-30",
+  "rules": {"choiceCount": 4,"tripleMultiplicationMaxResult": 100,"difficulty":{"basic":"基础","intermediate":"进阶","challenge":"挑战"}},
+  "topics": ["乘法口诀","重复加法","交换律","等值算式","补充乘数","分组计算","三连乘","一位数乘两位数","比较与辨错"],
+  "questions": [
+    {"id":"M1-BAS-001","grade":1,"difficulty":"basic","type":"basic_multiplication","topic":"乘法口诀","prompt":"2 × 4 = ？","options":["6","8","10","12"],"answer":"8","explanation":"2个4相加是8。","hint":"2 × 4就是4+4。","tags":["2的口诀"]},
+    {"id":"M1-BAS-002","grade":1,"difficulty":"basic","type":"basic_multiplication","topic":"乘法口诀","prompt":"5 × 6 = ？","options":["11","25","30","35"],"answer":"30","explanation":"五六三十。","hint":"想一想五六三十。","tags":["5的口诀"]},
+    {"id":"M1-BAS-003","grade":1,"difficulty":"basic","type":"basic_multiplication","topic":"乘法口诀","prompt":"3 × 7 = ？","options":["18","20","21","24"],"answer":"21","explanation":"三七二十一。","hint":"3个7相加。","tags":["3的口诀"]},
+    {"id":"M1-EQV-001","grade":1,"difficulty":"intermediate","type":"equivalent_addition","topic":"重复加法","prompt":"3 × 3 和哪个加法算式结果相同？","options":["3+3+3","3+3+3+3","2+3+3","3+4+5"],"answer":"3+3+3","explanation":"3 × 3表示3个3相加。","hint":"把乘法写成重复加法。","tags":["连加","等值算式"]},
+    {"id":"M1-EQV-002","grade":1,"difficulty":"intermediate","type":"equivalent_addition","topic":"灵活拆数","prompt":"3 × 3 和哪个算式结果相同？","options":["1+3+5","2+3+4","3+3+3+3","2+2+3"],"answer":"2+3+4","explanation":"2+3+4=9，和3×3相等。","hint":"先算每个加法算式的总和。","tags":["灵活拆数"]},
+    {"id":"M1-COM-001","grade":1,"difficulty":"intermediate","type":"commutative_property","topic":"交换律","prompt":"2 × 6 和哪个算式结果相同？","options":["6 × 2","2 + 6","6 × 3","2 × 5"],"answer":"6 × 2","explanation":"交换两个乘数的位置，积不变。","hint":"乘数交换位置，结果不变。","tags":["交换律"]},
+    {"id":"M2-MIS-001","grade":2,"difficulty":"intermediate","type":"missing_factor","topic":"补充乘数","prompt":"4 × ？ = 24","options":["4","5","6","7"],"answer":"6","explanation":"四六二十四，所以未知乘数是6。","hint":"想哪一句口诀的积是24。","tags":["补充乘数"]},
+    {"id":"M2-DIS-001","grade":2,"difficulty":"intermediate","type":"distributive_property","topic":"分组计算","prompt":"3 ×（2 + 4）= ？","options":["9","14","18","24"],"answer":"18","explanation":"3×2+3×4=6+12=18。","hint":"先算括号里的2+4。","tags":["分配律","括号"]},
+    {"id":"M2-TRI-001","grade":2,"difficulty":"intermediate","type":"triple_multiplication","topic":"三连乘","prompt":"2 × 3 × 4 = ？","options":["18","24","36","48"],"answer":"24","explanation":"先算2×3=6，再算6×4=24。","hint":"先算前两个乘数。","tags":["三连乘","乘法拓展"]},
+    {"id":"M2-TRI-002","grade":2,"difficulty":"intermediate","type":"triple_multiplication","topic":"三连乘","prompt":"3 × 3 × 3 = ？","options":["9","18","27","36"],"answer":"27","explanation":"先算3×3=9，再算9×3=27。","hint":"每一步都可以用乘法口诀。","tags":["三连乘"]},
+    {"id":"M2-TRI-003","grade":2,"difficulty":"intermediate","type":"triple_multiplication","topic":"三连乘","prompt":"4 × 2 × 5 = ？","options":["20","30","40","50"],"answer":"40","explanation":"4×2=8，8×5=40。","hint":"也可以先算2×5=10。","tags":["三连乘","凑整"]},
+    {"id":"M2-TRI-004","grade":2,"difficulty":"challenge","type":"triple_multiplication","topic":"三连乘","prompt":"5 × 2 × 4 = ？","options":["20","30","40","50"],"answer":"40","explanation":"5×2=10，10×4=40。","hint":null,"tags":["三连乘","凑整"]},
+    {"id":"M2-TWO-001","grade":2,"difficulty":"intermediate","type":"single_times_two_digit","topic":"一位数乘两位数","prompt":"3 × 12 = ？","options":["15","30","36","42"],"answer":"36","explanation":"12拆成10和2：3×10+3×2=30+6=36。","hint":"把12拆成10+2。","tags":["两位数拓展","拆分"]},
+    {"id":"M2-TWO-002","grade":2,"difficulty":"intermediate","type":"single_times_two_digit","topic":"一位数乘两位数","prompt":"4 × 21 = ？","options":["25","64","84","94"],"answer":"84","explanation":"21拆成20和1：4×20+4×1=80+4=84。","hint":"把21拆成20+1。","tags":["两位数拓展","拆分"]},
+    {"id":"M2-TWO-003","grade":2,"difficulty":"challenge","type":"single_times_two_digit","topic":"一位数乘两位数","prompt":"6 × 24 = ？","options":["120","124","144","164"],"answer":"144","explanation":"24拆成20和4：6×20+6×4=120+24=144。","hint":null,"tags":["两位数拓展","拆分"]},
+    {"id":"M2-CMP-001","grade":2,"difficulty":"challenge","type":"compare_products","topic":"比较与辨错","prompt":"哪个算式的结果最大？","options":["6×4","5×7","8×3","4×9"],"answer":"5×7","explanation":"6×4=24，5×7=35，8×3=24，4×9=36。","hint":null,"tags":["比较大小"]}
+  ]
+}

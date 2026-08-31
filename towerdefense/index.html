@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#173b57">
+  <meta name="description" content="面向小学二年级的数学与英语四域回合制答题塔防游戏">
+  <title>四域守护战 · 答题塔防</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css?v=8">
+</head>
+<body>
+  <main class="app-shell">
+    <section id="start-screen" class="screen start-screen active">
+      <div class="hero-card">
+        <div class="hero-art" aria-hidden="true">
+          <span class="hero-chick">🐥</span><span class="hero-vs">VS</span><span class="hero-monster">👾</span>
+        </div>
+        <p class="eyebrow">小学二年级 · 严格回合制</p>
+        <h1>四域守护战</h1>
+        <p class="subtitle">答对题目获得能量，选择炮弹击退空中、陆地、水中和地下怪物！</p>
+        <label class="field-label" for="player-name">守护者名字</label>
+        <input id="player-name" class="name-input" maxlength="10" value="小勇士" autocomplete="nickname">
+        <div class="mode-grid">
+          <button class="mode-card math" data-mode="math">
+            <span class="mode-icon">➗</span><strong>数学守护战</strong><small>乘法、巧算、三连乘和拓展</small>
+          </button>
+          <button class="mode-card english" data-mode="english">
+            <span class="mode-icon">🔤</span><strong>英语守护战</strong><small>辨字母、找拼写、句中选词</small>
+          </button>
+        </div>
+        <div class="start-actions">
+          <button id="show-rules" class="text-button">玩法说明</button>
+          <button id="show-leaderboard" class="text-button">🏆 查看榜单</button>
+          <button id="bind-report-folder" class="text-button">📁 绑定错题集文件夹</button>
+        </div>
+        <p id="folder-bind-status" class="folder-bind-status">未绑定时，报告会保存到浏览器下载目录</p>
+      </div>
+    </section>
+
+    <section id="game-screen" class="screen game-screen">
+      <header class="topbar">
+        <button id="quit-game" class="surrender-button" aria-label="投降并生成错题报告" title="投降并生成错题报告">🏳️ 投降</button>
+        <div class="level-block"><small>关卡</small><strong id="level-label">1 / 10</strong></div>
+        <div class="progress-wrap"><div id="level-progress" class="progress-fill"></div></div>
+        <div class="stat hp"><span>❤️</span><strong id="hp-value">5</strong></div>
+        <div class="stat energy"><span>⚡</span><strong id="energy-value">20</strong></div>
+        <div class="stat diamond"><span>💎</span><strong id="diamond-value">0</strong></div>
+      </header>
+
+      <section class="battle-card">
+        <div class="battle-head">
+          <div><strong id="level-title">陆地侦察队</strong><small id="turn-label">第 1 回合</small></div>
+          <div class="battle-counters"><div class="wave-counter" id="wave-label">待出场 3 波</div><div class="combo" id="combo-label">连击 0</div></div>
+        </div>
+        <div class="battle-zone">
+          <div id="battlefield" class="battlefield" aria-label="四域战场"></div>
+          <aside class="monster-pool" aria-label="即将出场的怪物">
+            <div class="pool-head"><span>🚪 怪物池</span><strong id="pool-count">0</strong></div>
+            <small>按顺序即将出场</small>
+            <div id="monster-pool-list" class="monster-pool-list"></div>
+          </aside>
+        </div>
+        <div id="battle-message" class="battle-message">准备迎战！</div>
+      </section>
+
+      <section id="question-panel" class="question-card">
+        <div class="question-meta"><span id="difficulty-badge" class="difficulty basic">基础</span><span id="question-topic"></span></div>
+        <h2 id="question-text">题目加载中……</h2>
+        <div id="answer-grid" class="answer-grid"></div>
+        <div class="question-foot">
+          <button id="hint-button" class="hint-button">💡 使用提示</button>
+          <span id="question-reward">答对 +12 ⚡</span>
+        </div>
+        <div id="hint-box" class="hint-box" hidden></div>
+      </section>
+
+      <section id="action-panel" class="action-card" hidden>
+        <div class="action-title"><strong>选择本回合行动</strong><span>只能行动一次</span></div>
+        <div class="ammo-grid">
+          <button class="ammo-button" data-weapon="normal"><span>💥</span><strong>普通弹</strong><small>10⚡ · 伤害2</small></button>
+          <button class="ammo-button" data-weapon="scatter"><span>🎇</span><strong>空中散射</strong><small>2💎 · 最多3只</small></button>
+          <button class="ammo-button" data-weapon="water"><span>⚓</span><strong>深水弹</strong><small>4💎 · 水怪必杀</small></button>
+          <button class="ammo-button" data-weapon="burrow"><span>🧨</span><strong>钻地弹</strong><small>3💎 · 地下必杀</small></button>
+          <button class="ammo-button" data-weapon="tracker"><span>🎯</span><strong>追踪弹</strong><small>4💎 · 跨域伤害4</small></button>
+          <button id="end-turn" class="ammo-button pass"><span>⏭️</span><strong>结束回合</strong><small>保存资源</small></button>
+        </div>
+        <p id="target-tip" class="target-tip">先选择炮弹，再点击战场中的目标。</p>
+      </section>
+    </section>
+
+    <section id="result-screen" class="screen result-screen">
+      <div class="result-card">
+        <div id="result-icon" class="result-icon">🏆</div>
+        <p class="eyebrow" id="result-kicker">守护成功</p>
+        <h1 id="result-title">四域恢复和平！</h1>
+        <p id="result-copy" class="subtitle"></p>
+        <div id="record-banner" class="record-banner" hidden>✨ 新纪录！你刷新了最快回合数！</div>
+        <div class="result-stats">
+          <div><small>总回合</small><strong id="result-turns">0</strong></div>
+          <div><small>正确率</small><strong id="result-accuracy">0%</strong></div>
+          <div><small>剩余生命</small><strong id="result-hp">0</strong></div>
+          <div><small>最高连击</small><strong id="result-combo">0</strong></div>
+        </div>
+        <p id="rank-note" class="rank-note"></p>
+        <div class="report-panel">
+          <strong>📚 错题报告</strong>
+          <p id="report-status">正在整理本次错题……</p>
+        </div>
+        <div class="result-actions">
+          <button id="play-again" class="primary-button">再挑战一次</button>
+          <button id="result-leaderboard" class="secondary-button">查看榜单</button>
+          <button id="download-reports" class="secondary-button">重新生成错题文件</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="fx-layer" class="fx-layer" aria-hidden="true"></div>
+
+  <dialog id="modal" class="modal">
+    <div class="modal-head"><h2 id="modal-title">玩法说明</h2><button id="close-modal" class="icon-button">✕</button></div>
+    <div id="modal-body" class="modal-body"></div>
+  </dialog>
+
+  <template id="lane-template">
+    <div class="lane">
+      <div class="lane-label"><span class="lane-icon"></span><strong class="lane-name"></strong></div>
+      <div class="lane-track"><div class="grid-lines"></div><div class="castle"></div></div>
+    </div>
+  </template>
+
+  <script src="../shared/question-bank-loader.js"></script><script src="game.js?v=9"></script>
+</body>
+</html>
+

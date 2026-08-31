@@ -41,7 +41,7 @@ function makeQuestion(type) {
   do { a = rand(2, 9); b = rand(2, 9); } while (a === 2 && b === 2); answer = a * b; expressions = [`${a} × ${b} = ${answer}`, `${a} × ${b} = ${answer + pick([-2, -1, 1, 2])}`, `${b} × ${a} = ${answer + 3}`, `${a} + ${b} = ${answer}`]; return { text: "下面哪个算式是正确的？", answer: expressions[0], options: shuffle(expressions), tag: "真假算式" };
 }
 
-function createLevelQuestions(level) { const types = LEVELS[level].types; return Array.from({ length: 3 }, (_, i) => { const q = makeQuestion(types[i % types.length]); if (level < 3 && q.teachingHint) q.hint = `💡 ${q.teachingHint}`; delete q.teachingHint; return q; }); }
+function createLevelQuestions(level) { const bank=window.LearningBanks?.math||[]; if(bank.length){ const pool=bank.filter(q=>Number(q.difficulty||1)<=Math.min(5,Math.floor(level/2)+2)); const src=pool.length?pool:bank; return Array.from({length:3},(_,i)=>{const q=src[(level*3+i)%src.length]; return {text:q.prompt,answer:String(q.answer),options:q.options,tag:q.topic||"题库挑战",hint:level<3?q.hint:""};}); } const types = LEVELS[level].types; return Array.from({ length: 3 }, (_, i) => { const q = makeQuestion(types[i % types.length]); if (level < 3 && q.teachingHint) q.hint = `💡 ${q.teachingHint}`; delete q.teachingHint; return q; }); }
 function hearts(n) { return "❤️".repeat(n) + "🤍".repeat(3 - n); }
 function save() { localStorage.setItem("chickRescueSave", JSON.stringify({ ...state, questions: [], answered: false, elapsedBefore: elapsedNow() })); }
 function elapsedNow() { return state.startedAt ? state.elapsedBefore + Date.now() - state.startedAt : state.elapsedBefore; }
@@ -111,7 +111,8 @@ async function renderLeaderboard() {
 }
 function openLeaderboard() { showScreen("leaderboardScreen"); renderLeaderboard(); }
 
-function begin(newGame) {
+async function begin(newGame) {
+  try { await window.LearningBanks?.ready; } catch {}
   const name = $("playerName").value.trim() || "小勇者";
   if (newGame) Object.assign(state, { player: name, level: 0, unlocked: 0, lives: 3, score: 0, totalCorrect: 0, totalWrong: 0, streak: 0, bestStreak: 0, startedAt: Date.now(), elapsedBefore: 0, certificate: "", leaderboardRank: null, newRecord: false });
   renderMap(); showScreen("mapScreen"); save(); tone(520, .09);
@@ -148,7 +149,7 @@ function answerQuestion(btn) {
   if (state.answered) return; state.answered = true; const q = state.questions[state.qIndex]; const correct = btn.dataset.value === q.answer;
   document.querySelectorAll(".answer").forEach(b => { b.disabled = true; if (b.dataset.value === q.answer) b.classList.add("correct"); });
   if (correct) { state.totalCorrect++; state.levelCorrect++; state.streak++; state.bestStreak = Math.max(state.bestStreak, state.streak); state.score += 100 + Math.min(state.streak, 5) * 10; btn.classList.add("correct"); $("feedback").textContent = pick(["太棒了，攻击成功！", "答对啦，口诀真熟练！", "漂亮！继续前进！"]); $("feedback").style.color = "#17864d"; $("hitEffect").textContent = "💥"; $("hitEffect").classList.add("show"); tone(660, .12); setTimeout(() => tone(880, .12), 100); }
-  else { state.totalWrong++; state.streak = 0; state.lives--; btn.classList.add("wrong"); $("feedback").textContent = `正确答案是 ${q.answer}，记住它再出发！`; $("feedback").style.color = "#c33a4c"; $("app").classList.add("shake"); tone(190, .25); }
+  else { state.totalWrong++; window.LearningReports?.add("math",{prompt:q.text,answer:q.answer,selected:btn.dataset.value,explanation:q.hint||"请复习乘法口诀。"}); state.streak = 0; state.lives--; btn.classList.add("wrong"); $("feedback").textContent = `正确答案是 ${q.answer}，记住它再出发！`; $("feedback").style.color = "#c33a4c"; $("app").classList.add("shake"); tone(190, .25); }
   updateQuizStats(); save(); setTimeout(() => { $("hitEffect").classList.remove("show"); $("app").classList.remove("shake"); if (state.lives <= 0) showScreen("failScreen"); else if (state.qIndex >= 2) completeLevel(); else { state.qIndex++; renderQuestion(); } }, correct ? 1150 : 1700);
 }
 
@@ -172,6 +173,7 @@ async function victory() {
   else if(state.leaderboardRank){notice.classList.add("qualified");notice.textContent=`🏅 成功进入${platform}极速榜第 ${state.leaderboardRank} 名！`;$("certificateRank").textContent=`🏅 ${platform}极速榜第 ${state.leaderboardRank} 名`;}
   else if(accuracy<90){notice.classList.add("unqualified");notice.textContent=`本次正确率为 ${accuracy}%，达到 90% 即可进入全平台榜单。`;$("certificateRank").textContent="完成十关救援挑战";}
   else{notice.classList.add("unqualified");notice.textContent="成功通过榜单资格线，继续加速就有机会进入全平台前 20 名！";$("certificateRank").textContent="通过全平台极速榜资格线";}
+  window.LearningReports?.finalize("math",{player:state.player,correct:state.totalCorrect});
   localStorage.removeItem("chickRescueSave");
 }
 
@@ -190,3 +192,7 @@ $("soundBtn").onclick=()=>{state.muted=!state.muted;$("soundBtn").textContent=st
 $("fullscreenBtn").onclick=()=>{if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();else document.exitFullscreen?.()};
 $("playerName").addEventListener("keydown",e=>{if(e.key==="Enter")begin(true)});
 const existing=loadSave(); if(existing){$("continueBtn").hidden=false;$("playerName").value=existing.player||""}
+
+
+
+
